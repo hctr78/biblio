@@ -1,0 +1,114 @@
+import sqlite3
+import re
+
+class ModeloBiblio:
+    # Función para conectar a la base de datos
+    def __init__(self, base="biblio.db"):
+        self.base = base
+        self.tabla()
+
+    # Función para conectar a la base de datos
+    def conexion(self):
+        return sqlite3.connect(self.base)
+
+    # Crear la tabla si no existe
+    def tabla(self):
+        with self.conexion() as con:
+            cursor = con.cursor()
+            sql = """CREATE TABLE IF NOT EXISTS biblioteca(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT, autor TEXT, ubicacion TEXT
+            )"""
+        cursor.execute(sql)
+        con.commit()
+
+        con = self.conexion()
+
+        try:
+            self.tabla(con)
+        except:
+            print("La base de datos ya existe")
+
+    # Función para agregar un registro
+    def alta(self, titulo, autor, ubica, tree):
+        with self.conexion() as con:
+            cursor = con.cursor()
+            sql = """INSERT INTO biblioteca (titulo, autor, ubicacion) VALUES (?, ?, ?)"""
+            cursor.execute(sql, (titulo, autor, ubica))
+            con.commit()
+        self.actualizar_treeview(tree)
+
+    # Función para actualizar la lista en el Treeview
+    def actualizar_treeview(self,tree):
+        records = tree.get_children()
+        for element in records:
+            tree.delete(element)
+        with self.conexion() as con:
+            cursor = con.cursor()
+            sql = "SELECT * FROM biblioteca ORDER BY id ASC"
+            resultado = cursor.execute(sql).fetchall()
+            for fila in resultado:
+                tree.insert("", "end", text=fila[0], values=(fila[1], fila[2], fila[3]))
+
+    # Función para eliminar un registro
+    def baja(self,tree):
+        valor = tree.selection()[0]
+        item = tree.item(valor)
+        id = int(item['text'])
+        with self.conexion() as con:
+            cursor = con.cursor()
+            sql = "DELETE FROM biblioteca WHERE id=?"
+            cursor.execute(sql, (id,))
+            con.commit()
+        tree.delete(valor)
+        
+
+    # Función para modificar un registro
+    def modificar(self,titulo, autor, ubica, tree):
+        valor = tree.selection()[0]
+        item = tree.item(valor)
+        id = int(item['text'])
+        with self.conexion() as con:
+            cursor = con.cursor()
+            sql = "UPDATE biblioteca SET titulo=?, autor=?, ubicacion=? WHERE id=?"
+            data = (titulo, autor, ubica, id)
+            cursor.execute(sql, data)
+            con.commit()
+        self.actualizar_treeview(tree)
+
+    # Función para consultar un registro
+    def consulta(self,tree):
+        valor = tree.selection()[0]
+        item = tree.item(valor)
+        id = int(item['text'])
+        with self.conexion() as con:
+            cursor = con.cursor()
+            sql = "SELECT * FROM biblioteca WHERE id=?"
+            resultado = cursor.execute(sql, (id,)).fetchone()
+        return resultado[1], resultado[2], resultado[3]
+
+    # Validaciones
+    def validar_titulo(self, titulo):
+        """Valida que el título sea alfanumérico y no esté vacío."""
+        if not titulo.strip():
+            raise ValueError("El título no puede estar vacío.")
+        if not re.match(r'^\w+(\s\w+)*$', titulo):
+            raise ValueError("El título solo puede contener letras, números y espacios.")
+
+    def validar_autor(self, autor):
+        """Valida que el autor sea alfabético y no esté vacío."""
+        if not autor.strip():
+            raise ValueError("El autor no puede estar vacío.")
+        if not re.match(r'^[a-zA-Z\s]+$', autor):
+            raise ValueError("El autor solo puede contener letras y espacios.")
+
+    def validar_ubicacion(self, ubica):
+        """Valida que la ubicación sea alfanumérica."""
+        if not ubica.strip():
+            raise ValueError("La ubicación no puede estar vacía.")
+        if not re.match(r'^[\w\s]+$', ubica):
+            raise ValueError("La ubicación solo puede contener letras, números y espacios.")
+
+
+
+
