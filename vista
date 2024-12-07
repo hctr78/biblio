@@ -1,0 +1,135 @@
+from tkinter import StringVar, Label, Entry, Button, ttk, Frame, PhotoImage, font
+from tkinter.messagebox import showerror
+from modelo import ModeloBiblio
+
+class VistaBiblio:
+    def __init__(self, biblio):
+        self.biblio = biblio
+        self.biblio.title("Sistema de carga y consultas de la biblioteca")
+        self.biblio.config(bg="#b6bdde")
+        self.biblio.geometry("620x500")
+
+        self.modelo = ModeloBiblio()
+
+        self.var_titulo = StringVar()
+        self.var_autor = StringVar()
+        self.var_ubica = StringVar()
+
+        self.config()
+    def config(self):
+        bold_font = font.Font(family="Arial", size=10,weight="bold")
+
+        tit = Label(self.biblio, text="", height=1, width=60, bg="#b6bdde")
+        tit.grid(row=0, column=0, columnspan=4, padx=1, pady=1)
+        titulo = Label(self.biblio, text="Título: ", bg="#b6bdde", font=bold_font)
+        titulo.grid(row=1, column=0, sticky="w")
+        autor = Label(self.biblio, text="Autor: ", bg="#b6bdde", font=bold_font)
+        autor.grid(row=2, column=0, sticky="w")
+        ubica = Label(self.biblio, text="Ubicación: ", bg="#b6bdde", font=bold_font)
+        ubica.grid(row=3, column=0, sticky="w")
+        margen = Label(self.biblio, text="", bg="#b6bdde")
+        margen.grid(row=4, column=0, sticky="w")
+
+        self.entry_titulo = Entry(self.biblio, textvariable=self.var_titulo, width=50)
+        self.entry_titulo.grid(row=1, column=1, sticky="e")
+        self.entry_autor = Entry(self.biblio, textvariable=self.var_autor, width=50)
+        self.entry_autor.grid(row=2, column=1, sticky="e")
+        self.entry_ubica = Entry(self.biblio, textvariable=self.var_ubica, width=50)
+        self.entry_ubica.grid(row=3, column=1, sticky="e")
+
+        self.tree = ttk.Treeview(self.biblio)
+        self.tree["columns"] = ("col1", "col2", "col3")
+        self.tree.column("#0", width=150, minwidth=150, anchor="w")
+        self.tree.column("col1", width=150, minwidth=150, anchor="w")
+        self.tree.column("col2", width=150, minwidth=150, anchor="w")
+        self.tree.column("col3", width=150, minwidth=150, anchor="w")
+        self.tree.heading("#0", text="ID")
+        self.tree.heading("col1", text="Título")
+        self.tree.heading("col2", text="Autor")
+        self.tree.heading("col3", text="Ubicación")
+        self.tree.grid(column=0, row=7, columnspan=4, padx=10, pady=10)
+
+        button_frame = Frame(self.biblio, bg="#b6bdde")
+        button_frame.grid(row=8, column=0, columnspan=4, pady=10, sticky="nsew")
+        button_frame.grid_columnconfigure(0, weight=1)
+        button_frame.grid_columnconfigure(1, weight=1)
+        button_frame.grid_columnconfigure(2, weight=1)
+        button_frame.grid_columnconfigure(3, weight=1)
+        Button(button_frame, text="Alta", width=10, font=bold_font, command=self.alta_ex).grid(row=0, column=0, padx=5, pady=5)
+        Button(button_frame, text="Baja", width=10, font=bold_font, command=self.baja_ex).grid(row=0, column=1, padx=5, pady=5)
+        Button(button_frame, text="Modificación", width=10, font=bold_font, command=self.modificar_ex).grid(row=0, column=2, padx=5, pady=5)
+        Button(button_frame, text="Consulta", width=10, font=bold_font, command=self.consulta_ex).grid(row=0, column=3, padx=5, pady=5)
+
+        try:
+            self.imagen = PhotoImage(file="imagen/libros.png")  
+            img_label = Label(self.biblio, image=self.imagen, bg="#b6bdde")
+            img_label.grid(row=0, column=3, rowspan=7, padx=20, pady=10)  
+        except Exception as e:
+            print(f"No se pudo cargar la imagen: {str(e)}")
+
+        frame = Frame(self.biblio)
+        frame.grid(row=0, column=2)
+        frame.grid_columnconfigure(0, weight=1)
+
+
+#Función auxiliar para las excepciones en el alta
+    def alta_ex(self):
+        try:
+            # Validar datos con el modelo
+            self.modelo.validar_titulo(self.var_titulo.get())
+            self.modelo.validar_autor(self.var_autor.get())
+            self.modelo.validar_ubicacion(self.var_ubica.get())
+
+            # Si los datos son válidos, realizar alta
+            self.modelo.alta(
+                self.var_titulo.get(),
+                self.var_autor.get(),
+                self.var_ubica.get(),
+                self.tree
+            )
+        except ValueError as e:
+            showerror("Error de validación", str(e))
+        except Exception as e:
+            showerror("Error al realizar alta", str(e))
+
+#Función auxiliar para las excepciones en la baja
+    def baja_ex(self):
+        try:
+            self.modelo.baja(self.tree)
+        except IndexError:
+            showerror("Error", "Debe seleccionar un elemento para eliminar")
+
+#Función auxiliar para las excepciones en las consultas
+    def consulta_ex(self):
+        try:
+            titulo, autor, ubicacion = self.modelo.consulta(self.tree)
+            self.var_titulo.set(titulo)
+            self.var_autor.set(autor)
+            self.var_ubica.set(ubicacion)
+        except IndexError:
+            showerror("Error", "Debe seleccionar un elemento para consultar")
+        except ValueError:
+            showerror("Error", "El registro no existe")
+        except Exception as e:
+            showerror("Error", f"Error inesperado: {str(e)}")
+
+#Función auxiliar para las excepciones en las modificaciones
+    def modificar_ex(self):
+        try:
+            # Validar datos con el modelo
+            self.modelo.validar_titulo(self.var_titulo.get())
+            self.modelo.validar_autor(self.var_autor.get())
+            self.modelo.validar_ubicacion(self.var_ubica.get())
+
+            # Si los datos son válidos, realizar modificación
+            self.modelo.modificar(
+                self.var_titulo.get(),
+                self.var_autor.get(),
+                self.var_ubica.get(),
+                self.tree
+            )
+        except ValueError as e:
+            showerror("Error de validación", str(e))
+        except Exception as e:
+            showerror("Error al modificar el registro", str(e))
+
