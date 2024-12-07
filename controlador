@@ -1,0 +1,8 @@
+from tkinter import Tk
+from vista import VistaBiblio
+
+
+if __name__ == "__main__":
+    biblio = Tk()
+    app = VistaBiblio(biblio)
+    biblio.mainloop()
